@@ -79,6 +79,14 @@ public class MediaSessionService extends Service {
         return super.onUnbind(intent);
     }
 
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        Log.d(TAG, "App removed from recents — stopping service.");
+        removeNotification();
+        stopSelf();
+    }
+
     public void connectAndInitialize(MediaSessionPlugin plugin, Intent intent) {
         this.plugin = plugin;
 
@@ -109,9 +117,9 @@ public class MediaSessionService extends Service {
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-          startForeground(NOTIFICATION_ID, notificationBuilder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            startForeground(NOTIFICATION_ID, notificationBuilder.build(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
         } else {
-          startForeground(NOTIFICATION_ID, notificationBuilder.build());
+            startForeground(NOTIFICATION_ID, notificationBuilder.build());
         }
 
         notificationActions.put("play", new NotificationCompat.Action(
@@ -220,9 +228,9 @@ public class MediaSessionService extends Service {
     @SuppressLint("RestrictedApi")
     public void update() {
         if (possibleActionsUpdate) {
-          if (notificationBuilder != null) {
-            notificationBuilder.mActions.clear();
-          }
+            if (notificationBuilder != null) {
+                notificationBuilder.mActions.clear();
+            }
 
             long activePlaybackStateActions = 0;
             int[] activeCompactViewActionIndices = new int[3];
@@ -254,14 +262,14 @@ public class MediaSessionService extends Service {
             }
 
             if (playbackStateBuilder != null) {
-              playbackStateBuilder.setActions(activePlaybackStateActions);
+                playbackStateBuilder.setActions(activePlaybackStateActions);
             }
             if (notificationStyle != null) {
-              if (compactNotificationActionIndicesIndex > 0) {
-                notificationStyle.setShowActionsInCompactView(Arrays.copyOfRange(activeCompactViewActionIndices, 0, compactNotificationActionIndicesIndex));
-            } else {
-                notificationStyle.setShowActionsInCompactView();
-              }
+                if (compactNotificationActionIndicesIndex > 0) {
+                    notificationStyle.setShowActionsInCompactView(Arrays.copyOfRange(activeCompactViewActionIndices, 0, compactNotificationActionIndicesIndex));
+                } else {
+                    notificationStyle.setShowActionsInCompactView();
+                }
             }
 
             possibleActionsUpdate = false;
@@ -302,9 +310,19 @@ public class MediaSessionService extends Service {
     }
 
     public void removeNotification() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ECLAIR) {
-            stopForeground(true);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ECLAIR) {
+                stopForeground(true);
+            }
+            if (notificationManager != null) {
+                notificationManager.cancel(NOTIFICATION_ID);
+            } else {
+                Log.w(TAG, "NotificationManager is null, skipping cancel()");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to remove notification", e);
         }
-        notificationManager.cancel(NOTIFICATION_ID);
     }
+
 }
+
